@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Mali&display=swap"
+      rel="stylesheet"
+    />
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.8.2/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.1.0/paho-mqtt.min.js"></script>
+
+    <style>
+      .container {
+        font-size: clamp(16px, 2.5vw, 40px);
+        margin-top: 20px;
+        text-align: center;
+        font-family: "Mali", cursive;
+      }
+
+      .temperature {
+        background-color: darkcyan;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 10px;
+      }
+
+      .humidity {
+        background-color: steelblue;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 10px;
+      }
+
+      button {
+        font-size: clamp(16px, 2.5vw, 40px);
+        padding: 10px 20px;
+        margin-bottom: 10px;
+        font-family: "Mali", cursive;
+        border-radius: 10px;
+        border: none;
+      }
+
+      .onBtn {
+        background-color: green;
+        color: white;
+      }
+
+      .offBtn {
+        background-color: crimson;
+        color: white;
+      }
+
+      .onBtn:hover {
+        background-color: white;
+        color: green;
+        outline: auto;
+        cursor: pointer;
+      }
+
+      .offBtn:hover {
+        background-color: white;
+        color: crimson;
+        outline: auto;
+        cursor: pointer;
+      }
+
+      body {
+        background-color: rgb(45, 45, 45);
+      }
+
+      .myChart {
+        margin: 20px 20px;
+      }
+
+      .chart-container {
+        height: 70vh;
+        width: 100vw;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <label class="temperature"
+        >อุณหภูมิ = <span id="temperature"></span> องศาเซลเซียส</label
+      ><br /><br />
+      <label class="humidity">ความชื้น = <span id="humidity"></span> %</label
+      ><br /><br />
+      <!-- <button class="onBtn" id="onBtnR1">เปิด Relay #1</button>
+      <button class="offBtn" id="offBtnR1">ปิด Relay #1</button><br />
+      <button class="onBtn" id="onBtnR2">เปิด Relay #2</button>
+      <button class="offBtn" id="offBtnR2">ปิด Relay #2</button> -->
+    </div>
+
+    <div class="chart-container">
+      <canvas id="myChart" class="myChart"></canvas>
+    </div>
+
+    <script type="module">
+      
+      let tempPoint, humiPoint;
+
+      const socket = new WebSocket('ws://vsmqtt.space:8000');
+
+      socket.addEventListener('open', e => {
+       console.log('Websocket Server Connected');
+      })
+
+      socket.addEventListener('message', e => {
+        console.log(e.data);
+        let arrivedMessage = e.data;
+        let data = arrivedMessage.split(",");
+        console.log(data);
+        tempPoint = Number(data[0]);
+        humiPoint = Number(data[1]);
+        updateChart();
+      })
+
+    //   const Relay1 = ref(db, "node99/control/relay1");
+    //   const Relay2 = ref(db, "node99/control/relay2");
+
+    //   let onBtnR1 = document.getElementById("onBtnR1");
+    //   let offBtnR1 = document.getElementById("offBtnR1");
+    //   let onBtnR2 = document.getElementById("onBtnR2");
+    //   let offBtnR2 = document.getElementById("offBtnR2");
+
+    //   onBtnR1.addEventListener("click", function onRelay1() {
+    //     set(Relay1, true);
+    //   });
+    //   offBtnR1.addEventListener("click", function offRelay1() {
+    //     set(Relay1, false);
+    //   });
+    //   onBtnR2.addEventListener("click", function onRelay2() {
+    //     set(Relay2, true);
+    //   });
+    //   offBtnR2.addEventListener("click", function offRelay2() {
+    //     set(Relay2, false);
+    //   });
+
+      function updateChart() {
+        myChart.data.labels.push("");
+        myChart.data.labels.shift();
+        myChart.data.datasets[0].data.push(tempPoint);
+        myChart.data.datasets[0].data.shift();
+        myChart.data.datasets[1].data.push(humiPoint);
+        myChart.data.datasets[1].data.shift();
+        document.getElementById("temperature").innerHTML = tempPoint;
+        document.getElementById("humidity").innerHTML = humiPoint;
+        myChart.update();
+      }
+
+      let delayed;
+      const temp = Array(20)
+        .fill()
+        .map(function rand() {
+          return Math.random() * 20 + 20;
+        });
+      const humi = Array(20)
+        .fill()
+        .map(() => Math.random() * 30 + 50);
+      // const temp = Array(20);
+      // const humi = Array(20);
+
+      const ctx = document.getElementById("myChart").getContext("2d");
+      const myChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
+          datasets: [
+            {
+              label: "อุณหภูมิ (°C)",
+              data: temp,
+              backgroundColor: "rgba(54, 162, 235, 1)",
+              borderColor: "rgba(54, 162, 235, 1)",
+              borderWidth: 3,
+              tension: 0.3,
+            },
+            {
+              label: "ความชื้น (%)",
+              data: humi,
+              backgroundColor: "rgba(255, 206, 86, 1)",
+              borderColor: "rgba(255, 206, 86, 1)",
+              borderWidth: 3,
+              tension: 0.3,
+            },
+          ],
+        },
+        options: {
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: "rgba(255, 255, 255, 0.2)",
+              },
+              ticks: {
+                color: "white",
+              },
+            },
+            x: {
+              ticks: {
+                color: "white",
+              },
+            },
+          },
+          plugins: {
+            title: {
+              display: true,
+              text: "Tony Space Node #99",
+              color: "white",
+            },
+            legend: {
+              labels: {
+                color: "white",
+              },
+            },
+          },
+          responsive: true,
+          maintainAspectRatio: false,
+        },
+      });
+    </script>
+  </body>
+</html>
